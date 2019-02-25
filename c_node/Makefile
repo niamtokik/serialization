@@ -1,20 +1,4 @@
-######################################################################
-# Copyright (c) 2019 Mathieu Kerjouan
-#
-# Permission to use, copy, modify, and distribute this software for
-# any purpose with or without fee is hereby granted, provided that the
-# above copyright notice and this permission notice appear in all
-# copies.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-# WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-# AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-# DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA
-# OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-# TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-# PERFORMANCE OF THIS SOFTWARE.
-######################################################################
+# GNU Makefile
 CC = /usr/bin/cc
 MAKE = /usr/local/bin/gmake
 ERL_RELEASE ?= 21
@@ -23,22 +7,40 @@ CC_DIRINC = -I/usr/local/lib/erlang$(ERL_RELEASE)/usr/include
 CC_LIBS = -lei -lerl_interface -lerts
 CC_OPTS = -Wall -Wextra $(CC_DIRLIB) $(CC_DIRINC) $(CC_LIBS)
 TARGETS = 
+TARGETS_TEST = 
 
 ifdef $(DEBUG)
 CC_OPTS += -g
 endif
 
+######################################################################
+#
+######################################################################
+.PHONY += help
+help:
+	@echo "\tbootstrap: install required package (OpenBSD)"
+	@echo "\tall: build everything"
+	@echo "\tdebug: build with debug flags"
+	@echo "\ttest: build test code"
+	@echo "\ttest-run: run test code"
+	@echo "\tclean-all: clean everything"
+	@echo "\tclean: clean standard build"
+	@echo "\tclean-test: clean test build"
+
 .PHONY += all
-all: bootstrap mono multi
+all: test mono multi
 
 .PHONY += debug
 debug:
 	$(MAKE) DEBUG=YES all
 
-.PHONE += bootstrap
+.PHONY += bootstrap
 bootstrap:
 	pkg_add erlang%$(ERL_RELEASE)
 
+######################################################################
+# standard code
+######################################################################
 TARGETS += shared.o
 shared.o:
 	$(CC) $(CC_OPTS) -c shared.c -o $@
@@ -51,6 +53,40 @@ TARGETS += multi
 multi: shared.o
 	$(CC) $(CC_OPTS) -lpthread multi.c shared.o -o $@
 
-.PHONE += clean
+######################################################################
+# test code
+######################################################################
+TARGETS_TEST += shared_test
+shared_test: shared.o
+	$(CC) $(CC_OPTS) shared_test.c shared.o -o $@
+
+TARGETS_TEST += mono_test
+mono_test: shared.o
+	$(CC) $(CC_OPTS) mono_test.c shared.o -o $@
+
+TARGETS_TEST += multi_test
+multi_test: shared.o
+	$(CC) $(CC_OPTS) mono_test.c shared.o -o $@
+
+.PHONY += test
+test: $(TARGETS_TEST)
+
+.PHONY += test-run
+test-run:
+	for i in $(TARGETS_TEST); do \
+		./$${i}; \
+	done
+
+######################################################################
+# clean feature
+######################################################################
+.PHONY += clean
 clean: 
 	rm $(TARGETS)
+
+.PHONY += clean-test
+clean-test:
+	rm $(TARGETS_TEST)
+
+.PHONY += clean-all
+clean-all: clean clean-test
