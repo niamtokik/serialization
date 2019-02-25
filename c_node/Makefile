@@ -2,12 +2,16 @@
 CC = /usr/bin/cc
 MAKE = /usr/local/bin/gmake
 ERL_RELEASE ?= 21
+ERL = erl$(ERL_RELEASE)
 CC_DIRLIB = -L/usr/local/lib/erlang$(ERL_RELEASE)/usr/lib
 CC_DIRINC = -I/usr/local/lib/erlang$(ERL_RELEASE)/usr/include
 CC_LIBS = -lei -lerl_interface -lerts
 CC_OPTS = -Wall -Wextra $(CC_DIRLIB) $(CC_DIRINC) $(CC_LIBS)
 TARGETS = 
 TARGETS_TEST = 
+NODE_NAME ?= serialization
+NODE_COOKIE ?= $(NODE_NAME)
+NODE_ARGS = -sname $(NODE_NAME) -setcookie $(NODE_COOKIE) 
 
 ifdef $(DEBUG)
 CC_OPTS += -g
@@ -20,6 +24,8 @@ endif
 help:
 	@echo "\tbootstrap: install required package (OpenBSD)"
 	@echo "\tall: build everything"
+	@echo "\tnode: start an erlang node"
+	@echo "\tnode-attach: attach a running erlang node"
 	@echo "\tdebug: build with debug flags"
 	@echo "\ttest: build test code"
 	@echo "\ttest-run: run test code"
@@ -37,6 +43,14 @@ debug:
 .PHONY += bootstrap
 bootstrap:
 	pkg_add erlang%$(ERL_RELEASE)
+
+.PHONY += node
+node:
+	$(ERL) $(NODE_ARGS) -detached
+
+.PHONY += node-attach
+node-attach:
+	$(ERL) -sname attach -remsh $(NODE_NAME)
 
 ######################################################################
 # standard code
